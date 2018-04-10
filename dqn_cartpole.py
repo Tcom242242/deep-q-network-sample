@@ -17,7 +17,7 @@ policy = EpsGreedyQPolicy(1.0, 0.999)
 memory = Memory(limit=50000, maxlen=1)
 obs = env.reset()
 agent = DQNAgent(actions=actions, memory=memory, update_interval=500, train_interval=1, batch_size=32,
-                 memory_interval=1, observation=obs, input_shape=[len(obs)], id=1, name=None, alpha=0.5,
+                 memory_interval=1, observation=obs, input_shape=[len(obs)], id=1, name=None, 
                  training=True, policy=policy)
 agent.compile()
 

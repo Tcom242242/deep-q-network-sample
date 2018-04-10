@@ -7,7 +7,7 @@ class DQNAgent(Agent):
     """
         keras-rlのコードを参考にしたDQNエージェント
     """
-    def __init__(self, gamma=0.99, alpha_decay_rate=0.999, actions=None, memory=None, memory_interval=1,train_interval=1, 
+    def __init__(self, gamma=0.99, actions=None, memory=None, memory_interval=1,train_interval=1, 
                  batch_size=32, update_interval=10, nb_steps_warmup=100, observation=None,
                  input_shape=None, 
                  **kwargs):
@@ -16,7 +16,6 @@ class DQNAgent(Agent):
         self.actions = actions
         self.gamma = gamma
         self.state = observation
-        self.alpha_decay_rate = alpha_decay_rate
         self.recent_observation = observation
         self.update_interval = update_interval
         self.memory = memory
@@ -71,7 +70,6 @@ class DQNAgent(Agent):
         if self.training:
             self._update_q_value(reward, terminal)
 
-        self.decay_alpha()
         self.policy.decay_eps_rate()
         self.step += 1
 
@@ -127,9 +125,6 @@ class DQNAgent(Agent):
 
     def observe(self, next_state):
         self.recent_observation = next_state
-
-    def decay_alpha(self):
-        self.alpha = self.alpha*self.alpha_decay_rate
 
     def reset(self):
         self.recent_observation = None
