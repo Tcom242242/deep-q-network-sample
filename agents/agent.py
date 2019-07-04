@@ -23,13 +23,9 @@ class Agent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def get_reward(self, reward):
-        pass
-
-    @abstractmethod
     def observe(self, next_state):
         pass
 
     @abstractmethod
-    def get_data(self):
+    def get_config(self):
         pass

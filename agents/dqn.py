@@ -2,6 +2,7 @@ import tensorflow as tf
 from agents.agent import Agent
 import numpy as np
 import agents.network as net
+import copy
 
 class DQNAgent(Agent):
     """
@@ -17,12 +18,14 @@ class DQNAgent(Agent):
         self.gamma = gamma
         self.state = observation
         self.recent_observation = observation
+        self.previous_observation = observation
         self.update_interval = update_interval
         self.memory = memory
         self.memory_interval = memory_interval
         self.batch_size = batch_size
         self.recent_action_id = 0
         self.nb_steps_warmup = nb_steps_warmup
+
         self.sess = tf.InteractiveSession()
         self.model_inputs, self.model_outputs, self.model_max_outputs, self.model = net.build_model(input_shape,len(self.actions))
         self.target_model_inputs, self.target_model_outputs, self.target_model_max_outputs, self.target_model= net.build_model(input_shape, len(self.actions))
@@ -50,36 +53,35 @@ class DQNAgent(Agent):
         self.train = optimizer.minimize(self.loss)
         self.sess.run(tf.initialize_all_variables())
 
-    def update_target_model_hard(self):
-        """ copy q-network to target network """
-        self.sess.run(self.update_target_model)
+    def act(self):
+        action_id = self.forward()
+        action = self.actions[action_id]
+        return action
 
-    def train_on_batch(self, state_batch, action_batch, targets):
-        self.sess.run(self.train, feed_dict={self.model_inputs:state_batch, self.inputs:action_batch, self.targets:targets})
-
-    def predict_on_batch(self, state1_batch):
-        q_values = self.sess.run(self.target_model_max_outputs, feed_dict={self.target_model_inputs:state1_batch})
-        return q_values
-
-    def compute_q_values(self, state):
-        q_values = self.sess.run(self.model_outputs, feed_dict={self.model_inputs:[state]})
-        return q_values[0]
-
-    def get_reward(self, reward, terminal):
-        self.reward_history.append(reward)
+    def forward(self):
+        state = self.recent_observation
+        q_values = self.compute_q_values(state)
         if self.training:
-            self._update_q_value(reward, terminal)
+            action_id = self.policy.select_action(q_values=q_values)
+        else:
+            action_id = self.policy.select_greedy_action(q_values=q_values)
 
-        self.policy.decay_eps_rate()
+        self.recent_action_id = action_id
+        return action_id
+
+    def observe(self, next_state, reward=None, is_terminal=False, is_train=True):
+        self.previous_observation = copy.deepcopy(self.recent_observation)
+        self.recent_observation = next_state
+        if is_train:
+            self.reward_history.append(reward)
+            self._update_q_value(reward, is_terminal)
+            self.policy.decay_eps_rate()
         self.step += 1
 
     def _update_q_value(self, reward, terminal):
-        self.backward(reward, terminal)
-
-    def backward(self, reward, terminal):
         if self.step % self.memory_interval == 0:
             """ store experience """
-            self.memory.append(self.recent_observation, self.recent_action_id, reward, terminal=terminal, training=self.training)
+            self.memory.append(self.previous_observation, self.recent_action_id, reward, terminal=terminal, training=self.training)
 
         if (self.step > self.nb_steps_warmup) and (self.step % self.train_interval == 0):
             experiences = self.memory.sample(self.batch_size)
@@ -107,30 +109,27 @@ class DQNAgent(Agent):
             """ update target network """
             self.update_target_model_hard()
 
-    def act(self):
-        action_id = self.forward()
-        action = self.actions[action_id]
-        return action
+    def train_on_batch(self, state_batch, action_batch, targets):
+        self.sess.run(self.train, feed_dict={self.model_inputs:state_batch, self.inputs:action_batch, self.targets:targets})
 
-    def forward(self):
-        state = self.recent_observation
-        q_values = self.compute_q_values(state)
-        if self.training:
-            action_id = self.policy.select_action(q_values=q_values)
-        else:
-            action_id = self.policy.select_greedy_action(q_values=q_values)
+    def predict_on_batch(self, state1_batch):
+        q_values = self.sess.run(self.target_model_max_outputs, feed_dict={self.target_model_inputs:state1_batch})
+        return q_values
 
-        self.recent_action_id = action_id
-        return action_id
+    def compute_q_values(self, state):
+        q_values = self.sess.run(self.model_outputs, feed_dict={self.model_inputs:[state]})
+        return q_values[0]
 
-    def observe(self, next_state):
-        self.recent_observation = next_state
+    def update_target_model_hard(self):
+        """ copy q-network to target network """
+        self.sess.run(self.update_target_model)
 
     def reset(self):
         self.recent_observation = None
+        self.previous_observation = None
         self.recent_action_id = None
 
-    def get_data(self):
+    def get_config(self):
         result = {}
         result["alpha"] = self.alpha
         result["gamma"] = self.gamma

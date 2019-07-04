@@ -24,28 +24,18 @@ agent.compile()
 result = []
 for episode in range(500):  # 1000エピソード回す
     agent.reset()
-    observation =  env.reset() # 環境の初期化
+    observation = env.reset() # 環境の初期化
     # observation, _, _, _ = env.step(env.action_space.sample())
     observation = deepcopy(observation)
-    agent.observe(observation)
+    agent.observe(observation, is_train=False)
     for t in range(250): # n回試行する
         # env.render() # 表示
         action = deepcopy(agent.act())
         observation, reward, done, info = env.step(action) #　アクションを実行した結果の状態、報酬、ゲームをクリアしたかどうか、その他の情報を返す
         observation = deepcopy(observation)
-        agent.get_reward(reward, done)
-        agent.observe(observation)
+        agent.observe(observation, reward, done)
         if done:
-            # if t < 195:
-            #     reward = -1
-            # else:
-            #     reward = 1
-            # agent.get_reward(reward, done)
-            # agent.observe(observation)
             break
-        # else:
-        #     agent.get_reward(reward, done)
-        #     agent.observe(observation)
 
     # test
     agent.training = False
