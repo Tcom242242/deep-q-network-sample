@@ -15,7 +15,7 @@ cd deep-q-netowork-sample
 To do sample code
 
 ```
-python dqn_cartpole.py
+python run.py
 ```
 
 

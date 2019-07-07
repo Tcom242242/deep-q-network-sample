@@ -1,9 +1,9 @@
 # https://github.com/openai/gym/wiki/CartPole-v0
 import tensorflow as tf
 import gym
-from agents.memory import Memory
-from agents.policy import EpsGreedyQPolicy
-from agents.dqn import DQNAgent
+from memory import Memory
+from policy import EpsGreedyQPolicy
+from dqn import DQNAgent
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
@@ -17,8 +17,7 @@ policy = EpsGreedyQPolicy(1.0, 0.999)
 memory = Memory(limit=50000, maxlen=1)
 obs = env.reset()
 agent = DQNAgent(actions=actions, memory=memory, update_interval=500, train_interval=1, batch_size=32,
-                 memory_interval=1, observation=obs, input_shape=[len(obs)], id=1, name=None, 
-                 training=True, policy=policy)
+                 memory_interval=1, observation=obs, input_shape=[len(obs)], training=True, policy=policy)
 agent.compile()
 
 result = []
@@ -27,10 +26,10 @@ for episode in range(500):  # 1000エピソード回す
     observation = env.reset() # 環境の初期化
     # observation, _, _, _ = env.step(env.action_space.sample())
     observation = deepcopy(observation)
-    agent.observe(observation, is_train=False)
+    agent.observe(observation)
     for t in range(250): # n回試行する
         # env.render() # 表示
-        action = deepcopy(agent.act())
+        action = agent.act()
         observation, reward, done, info = env.step(action) #　アクションを実行した結果の状態、報酬、ゲームをクリアしたかどうか、その他の情報を返す
         observation = deepcopy(observation)
         agent.observe(observation, reward, done)
@@ -59,4 +58,3 @@ plt.xlabel("episode")
 plt.ylim((0, 200))
 plt.plot(x, result)
 plt.savefig("result.png")
-

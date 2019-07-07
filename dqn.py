@@ -1,19 +1,18 @@
 import tensorflow as tf
-from agents.agent import Agent
 import numpy as np
-import agents.network as net
+import network as net
 import copy
 
-class DQNAgent(Agent):
+class DQNAgent():
     """
         keras-rlのコードを参考にしたDQNエージェント
     """
-    def __init__(self, gamma=0.99, actions=None, memory=None, memory_interval=1,train_interval=1, 
-                 batch_size=32, update_interval=10, nb_steps_warmup=100, observation=None,
-                 input_shape=None, 
-                 **kwargs):
+    def __init__(self, training=None, policy=None, gamma=0.99, actions=None, memory=None, memory_interval=1,train_interval=1, 
+                 batch_size=32, update_interval=10, nb_steps_warmup=100, observation=None, input_shape=None):
 
-        super().__init__(**kwargs)
+        self.training = training
+        self.policy = policy
+        self.reward_history = []
         self.actions = actions
         self.gamma = gamma
         self.state = observation
@@ -69,10 +68,10 @@ class DQNAgent(Agent):
         self.recent_action_id = action_id
         return action_id
 
-    def observe(self, next_state, reward=None, is_terminal=False, is_train=True):
+    def observe(self, observation, reward=None, is_terminal=False):
         self.previous_observation = copy.deepcopy(self.recent_observation)
-        self.recent_observation = next_state
-        if is_train:
+        self.recent_observation = observation
+        if self.training and reward is not None:
             self.reward_history.append(reward)
             self._update_q_value(reward, is_terminal)
             self.policy.decay_eps_rate()
@@ -128,11 +127,3 @@ class DQNAgent(Agent):
         self.recent_observation = None
         self.previous_observation = None
         self.recent_action_id = None
-
-    def get_config(self):
-        result = {}
-        result["alpha"] = self.alpha
-        result["gamma"] = self.gamma
-        result["epsilon"] = self.policy.eps
-        result["reward_history"] = self.reward_history
-        return result
